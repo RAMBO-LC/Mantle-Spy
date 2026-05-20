@@ -1,0 +1,19 @@
+{
+  "name": "mantlespy",
+  "version": "1.0.0",
+  "description": "Mantle on-chain watcher, AI signal analyzer, Telegram notifier, and Solana execution agent via Byreal CLI",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network mantleTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network mantle"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.3"
+  }
+}

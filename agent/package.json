@@ -1,0 +1,19 @@
+{
+  "name": "mantlespy-agent",
+  "version": "1.0.0",
+  "description": "Agent core for Mantle Spy on-chain watcher, analyzer, and executor",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test:sim": "node test-simulation.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.12.1",
+    "express": "^4.19.2",
+    "node-telegram-bot-api": "^0.66.0"
+  }
+}

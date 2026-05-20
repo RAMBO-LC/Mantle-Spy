@@ -27,7 +27,7 @@ async function main() {
   console.log(`   SIGNAL_LOGGER_ADDRESS=${address}\n`);
 
   // Verify on explorer (may need API key)
-  if (process.env.MANTLE_EXPLORER_API_KEY) {
+  if (process.env.ETHERSCAN_API_KEY || process.env.MANTLE_EXPLORER_API_KEY) {
     console.log("🔍 Verifying contract on explorer...");
     try {
       await hre.run("verify:verify", {
@@ -39,7 +39,7 @@ async function main() {
       console.log("⚠️  Verification failed (may already be verified):", e.message);
     }
   } else {
-    console.log("ℹ️  Set MANTLE_EXPLORER_API_KEY in .env to auto-verify.");
+    console.log("ℹ️  Set ETHERSCAN_API_KEY or MANTLE_EXPLORER_API_KEY in .env to auto-verify.");
   }
 }
 

@@ -23,10 +23,7 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: {
-      mantle: process.env.MANTLE_EXPLORER_API_KEY || "no-key-needed",
-      mantleTestnet: process.env.MANTLE_EXPLORER_API_KEY || "no-key-needed",
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY || process.env.MANTLE_EXPLORER_API_KEY || "no-key-needed",
     customChains: [
       {
         network: "mantle",

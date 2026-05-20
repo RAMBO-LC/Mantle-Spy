@@ -7,9 +7,9 @@ const SIGNAL_EMOJI = { BUY: "🟢", SELL: "🔴", WATCH: "👀", IGNORE: "⚪" }
 const RISK_EMOJI = { LOW: "🟩", MEDIUM: "🟨", HIGH: "🟥" };
 
 export function initBot(onAddWallet, onStatus) {
-  const token = process.env.TELEGRAM_BOT_TOKEN || process.env.TELEGRAM_TOKEN;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
-    console.warn("[Notifier] No TELEGRAM_BOT_TOKEN or TELEGRAM_TOKEN set — Telegram alerts disabled");
+    console.warn("[Notifier] No TELEGRAM_BOT_TOKEN set — Telegram alerts disabled");
     return null;
   }
 
@@ -63,37 +63,42 @@ export function initBot(onAddWallet, onStatus) {
   return bot;
 }
 
+// Escape special chars for Telegram MarkdownV2
+function esc(str) {
+  return String(str ?? "—").replace(/[_*[\]()~`>#+\-=|{}.!\\]/g, "\\$&");
+}
+
 export async function sendSignalAlert(signal, execution = null) {
   if (!bot || !CHAT_ID) return;
 
   const emoji = SIGNAL_EMOJI[signal.signal] || "⚪";
   const riskEmoji = RISK_EMOJI[signal.riskLevel] || "🟨";
-
-  const tags = signal.tags?.map((t) => `#${t}`).join(" ") || "";
+  const tags = signal.tags?.map((t) => `\#${esc(t)}`).join(" ") || "";
+  const explorerUrl = `https://sepolia.mantlescan.xyz/tx/${signal.txHash}`;
 
   let text =
-    `${emoji} *MantleSpy Signal Detected*\n\n` +
-    `Signal: *${signal.signal}* | Confidence: *${signal.confidence}%*\n` +
-    `Risk: ${riskEmoji} ${signal.riskLevel} | Smart Money Score: ${signal.smartMoneyScore}/100\n\n` +
-    `📋 *Analysis*\n${signal.reasoning}\n\n` +
-    `⚡ *Action*: ${signal.action}\n\n` +
-    `💰 Value: ${signal.valueMNT} MNT\n` +
-    `🔗 [View TX on Mantle Explorer](https://mantlescan.xyz/tx/${signal.txHash})\n`;
+    `${emoji} *MantleSpy Signal*\n\n` +
+    `Signal: *${esc(signal.signal)}* \\| Confidence: *${esc(signal.confidence)}%*\n` +
+    `Risk: ${riskEmoji} ${esc(signal.riskLevel)} \\| Score: ${esc(signal.smartMoneyScore)}/100\n\n` +
+    `📋 *Analysis*\n${esc(signal.reasoning)}\n\n` +
+    `⚡ *Action*: ${esc(signal.action)}\n\n` +
+    `💰 Value: ${esc(signal.valueMNT)} MNT\n` +
+    `🔗 [View TX](${explorerUrl})\n`;
 
   if (tags) text += `\n${tags}`;
 
   if (execution?.executed) {
     text +=
-      `\n\n🤖 *Auto-Executed on Byreal*\n` +
-      `• Type: ${execution.type}\n` +
-      `• Pair: ${execution.pair || "—"}\n` +
-      `• Mode: ${execution.mode}\n`;
-    if (execution.pnlPercent) text += `• Mock PnL: ${execution.pnlPercent}%\n`;
+      `\n\n🤖 *Auto\\-Executed on Byreal*\n` +
+      `• Type: ${esc(execution.type)}\n` +
+      `• Pair: ${esc(execution.pair || "—")}\n` +
+      `• Mode: ${esc(execution.mode)}\n`;
+    if (execution.pnlPercent) text += `• Mock PnL: ${esc(execution.pnlPercent)}%\n`;
   }
 
   try {
     await bot.sendMessage(CHAT_ID, text, {
-      parse_mode: "Markdown",
+      parse_mode: "MarkdownV2",
       disable_web_page_preview: true,
     });
   } catch (err) {
@@ -103,9 +108,10 @@ export async function sendSignalAlert(signal, execution = null) {
 
 export async function sendStartupMessage() {
   if (!bot || !CHAT_ID) return;
+  const mode = esc(process.env.EXECUTION_MODE || "mock");
   await bot.sendMessage(
     CHAT_ID,
-    `🚀 *MantleSpy Agent Started*\n\nNow monitoring Mantle Network for smart money movements.\nMode: \`${process.env.EXECUTION_MODE || "mock"}\``,
-    { parse_mode: "Markdown" }
+    `🚀 *MantleSpy Agent Started*\n\nNow monitoring Mantle Network for smart money movements\\.\nMode: \`${mode}\``,
+    { parse_mode: "MarkdownV2" }
   );
 }

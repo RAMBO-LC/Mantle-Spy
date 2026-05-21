@@ -8,12 +8,13 @@
     "test": "hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy.js --network mantleTestnet",
     "deploy:mainnet": "hardhat run scripts/deploy.js --network mantle",
-    "deploy-sep" : "npx hardhat run scripts/deploy.js --network mantleTestnet",
+    "deploy-sep": "npx hardhat run scripts/deploy.js --network mantleTestnet",
     "start": "node agent/watcher.js",
-    "sim" : "node agent/test-simulation.js"
+    "sim": "node agent/test-simulation.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
+    "groq-sdk": "^1.2.0",
     "ollama": "^0.6.3"
   },
   "devDependencies": {

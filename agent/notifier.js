@@ -98,7 +98,7 @@ export async function sendSignalAlert(signal, execution = null) {
 
   try {
     await bot.sendMessage(CHAT_ID, text, {
-      parse_mode: "MarkdownV2",
+      parse_mode: "HTML",
       disable_web_page_preview: true,
     });
   } catch (err) {

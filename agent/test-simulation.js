@@ -70,7 +70,7 @@ async function runSimulation() {
 
     try {
       // Step 1: Analyze
-      process.stdout.write("  [1/4] Analyzing with Claude... ");
+      process.stdout.write("  [1/4] Analyzing with Ollama... ");
       const signal = await analyzeTransaction(tx);
       console.log(`✅ ${signal.signal} (${signal.confidence}%)`);
       console.log(`       Reasoning: ${signal.reasoning}`);

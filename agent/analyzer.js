@@ -1,33 +1,31 @@
-import Anthropic from "@anthropic-ai/sdk";
+import ollama from 'ollama';
 import { createHash } from "crypto";
+import fs from 'fs';
+import path from 'path';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const skillPath = path.resolve('.agents/skills/byreal-cli/SKILL.md');
 
-const SYSTEM_PROMPT = `You are MantleSpy, an elite on-chain analyst specializing in the Mantle Network (Ethereum L2).
-Your job is to analyze raw blockchain transaction data and determine if it represents "smart money" activity.
+const byrealSkill = fs.readFileSync(skillPath, 'utf-8');
 
-Smart money indicators:
-- Large value transfers from/to known DeFi protocols
-- Wallet accumulation patterns (multiple buys)
-- Unusual transaction timing relative to market events
-- Contract interactions with high-value transfers
-- Wallet-to-wallet moves that precede price action
+const SYSTEM_PROMPT = `
+You are MantleSpy, an elite on-chain AI agent specializing in:
+- Mantle Network
+- Smart money analysis
+- Byreal CLI operations
+- Solana DeFi execution
 
-You MUST respond with ONLY a valid JSON object, no markdown, no explanation outside JSON:
-{
-  "signal": "BUY" | "SELL" | "WATCH" | "IGNORE",
-  "confidence": <integer 0-100>,
-  "reasoning": "<2-3 sentences max explaining why>",
-  "action": "<specific suggested action, e.g. 'Accumulate MNT on Byreal'>",
-  "smartMoneyScore": <integer 0-100>,
-  "riskLevel": "LOW" | "MEDIUM" | "HIGH",
-  "tags": ["<tag1>", "<tag2>"]
-}
+You MUST obey the following operational skill rules:
 
-Tags can include: "whale_move", "accumulation", "distribution", "contract_interaction", "tracked_wallet", "large_transfer", "defi_activity"`;
+${byrealSkill}
 
+You MUST respond ONLY with valid JSON.
+
+NEVER use markdown.
+NEVER wrap JSON in triple backticks.
+Return ONLY raw valid JSON.`;
 export async function analyzeTransaction(tx) {
-  const prompt = `Analyze this Mantle Network transaction for smart money activity:
+  const prompt = `
+Analyze this Mantle Network transaction.
 
 Transaction Hash: ${tx.hash}
 From: ${tx.from}
@@ -39,21 +37,36 @@ Event Logs Count: ${tx.logsCount}
 Flag Reason: ${tx.reason}
 Block: ${tx.blockNumber}
 Timestamp: ${tx.timestamp}
-
-Is this smart money activity? What does it signal?`;
+`;
 
   try {
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 512,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: prompt }],
+    const response = await ollama.chat({
+      model: 'deepseek-r1:8b',
+      messages: [
+        {
+          role: 'system',
+          content: SYSTEM_PROMPT
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      options: {
+          temperature: 0.2
+        },      
     });
 
-    const raw = message.content[0].text.trim();
-    const parsed = JSON.parse(raw);
+    const raw = response.message.content.trim();
 
-    // Attach metadata
+    // Remove markdown wrappers if model adds them
+    const cleaned = raw
+      .replace(/```json/g, '')
+      .replace(/```/g, '')
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
     parsed.txHash = tx.hash;
     parsed.valueMNT = tx.valueMNT;
     parsed.from = tx.from;
@@ -61,16 +74,17 @@ Is this smart money activity? What does it signal?`;
     parsed.blockNumber = tx.blockNumber;
     parsed.analyzedAt = new Date().toISOString();
 
-    // Create verifiable hash of the full signal JSON (for on-chain logging)
-    parsed.dataHash = "0x" + createHash("sha256")
-      .update(JSON.stringify(parsed))
-      .digest("hex");
+    parsed.dataHash =
+      "0x" +
+      createHash("sha256")
+        .update(JSON.stringify(parsed))
+        .digest("hex");
 
     return parsed;
-  } catch (err) {
-    console.error("[Analyzer] Claude API error:", err.message);
 
-    // Fallback signal on error
+  } catch (err) {
+    console.error("[Analyzer] Ollama error:", err.message);
+
     return {
       signal: "WATCH",
       confidence: 30,
@@ -85,12 +99,22 @@ Is this smart money activity? What does it signal?`;
       to: tx.to,
       blockNumber: tx.blockNumber,
       analyzedAt: new Date().toISOString(),
-      dataHash: "0x" + createHash("sha256").update(tx.hash).digest("hex"),
+      dataHash:
+        "0x" +
+        createHash("sha256")
+          .update(tx.hash)
+          .digest("hex"),
     };
   }
 }
 
 export function signalTypeToEnum(signal) {
-  const map = { IGNORE: 0, WATCH: 1, BUY: 2, SELL: 3 };
+  const map = {
+    IGNORE: 0,
+    WATCH: 1,
+    BUY: 2,
+    SELL: 3
+  };
+
   return map[signal] ?? 0;
 }

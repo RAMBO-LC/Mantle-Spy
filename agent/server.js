@@ -3,7 +3,17 @@ import cors from "cors";
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: process.env.FRONTEND_URL || "http://localhost:5173" }));
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow any localhost origin (Vite may pick any free port)
+    if (!origin || /^http:\/\/localhost(:\d+)?$/.test(origin) || /^http:\/\/127\.0\.0\.1(:\d+)?$/.test(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error("CORS: origin not allowed"));
+    }
+  },
+  credentials: true,
+}));
 
 // ─── In-memory state (replace with DB for production) ──────────────────────
 export const state = {

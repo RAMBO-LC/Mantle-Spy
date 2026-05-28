@@ -1,35 +1,80 @@
-import TelegramBot from "node-telegram-bot-api";
+import axios from "axios";
+import { safeRequest } from "./utils/request.js";
 
-let bot = null;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
-
 const SIGNAL_EMOJI = { BUY: "🟢", SELL: "🔴", WATCH: "👀", IGNORE: "⚪" };
 const RISK_EMOJI = { LOW: "🟩", MEDIUM: "🟨", HIGH: "🟥" };
 
+let token = null;
+let lastUpdateId = 0;
+let isPolling = false;
+
+// Callbacks
+let handleAddWallet = null;
+let handleGetStatus = null;
+
 export function initBot(onAddWallet, onStatus) {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     console.warn("[Notifier] No TELEGRAM_BOT_TOKEN set — Telegram alerts disabled");
     return null;
   }
 
-  bot = new TelegramBot(token, { polling: true });
-  console.log("[Notifier] Telegram bot initialized");
+  handleAddWallet = onAddWallet;
+  handleGetStatus = onStatus;
 
-  // /start
-  bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(
-      msg.chat.id,
+  console.log("[Notifier] Telegram bot initialized via Axios");
+
+  // Start polling
+  isPolling = true;
+  pollUpdates();
+
+  return true; // Indicate active
+}
+
+async function pollUpdates() {
+  if (!isPolling || !token) return;
+
+  const url = `https://api.telegram.org/bot${token}/getUpdates`;
+  const data = await safeRequest(
+    async () => {
+      const res = await axios.post(
+        url,
+        { offset: lastUpdateId + 1, timeout: 10 },
+        { timeout: 15000 }
+      );
+      return res.data;
+    },
+    "Telegram",
+    2 // use max 2 retries for polling to avoid long hangs
+  );
+
+  if (data && data.ok) {
+    for (const update of data.result) {
+      lastUpdateId = Math.max(lastUpdateId, update.update_id);
+      await handleMessage(update.message);
+    }
+  }
+
+  // Loop
+  setTimeout(pollUpdates, 2000);
+}
+
+async function handleMessage(msg) {
+  if (!msg || !msg.text) return;
+  const text = msg.text.trim();
+  const chatId = msg.chat.id;
+
+  if (text.startsWith("/start")) {
+    await sendMessage(
+      chatId,
       `👁 *MantleSpy Agent*\n\nI'm watching Mantle Network for smart money movements.\n\n*Commands:*\n/status — Agent status\n/track 0x... — Track a wallet\n/signals — Last 5 signals`,
-      { parse_mode: "Markdown" }
+      "Markdown"
     );
-  });
-
-  // /status
-  bot.onText(/\/status/, async (msg) => {
-    const stats = onStatus ? await onStatus() : {};
-    bot.sendMessage(
-      msg.chat.id,
+  } else if (text.startsWith("/status")) {
+    const stats = handleGetStatus ? await handleGetStatus() : {};
+    await sendMessage(
+      chatId,
       `📊 *Agent Status*\n\n` +
         `• Running: ${stats.isRunning ? "✅" : "❌"}\n` +
         `• Blocks scanned: ${stats.blocksScanned || 0}\n` +
@@ -37,30 +82,33 @@ export function initBot(onAddWallet, onStatus) {
         `• Latency: ${stats.latencyMs || 0}ms\n` +
         `• Tracked wallets: ${stats.trackedWallets || 0}\n` +
         `• Mode: ${process.env.EXECUTION_MODE || "mock"}`,
-      { parse_mode: "Markdown" }
+      "Markdown"
     );
-  });
-
-  // /track 0x...
-  bot.onText(/\/track (.+)/, (msg, match) => {
-    const address = match[1].trim();
-    if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-      bot.sendMessage(msg.chat.id, "❌ Invalid Ethereum address format.");
+  } else if (text.startsWith("/track")) {
+    const address = text.split(" ")[1]?.trim();
+    if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
+      await sendMessage(chatId, "❌ Invalid Ethereum address format.");
       return;
     }
-    if (onAddWallet) onAddWallet(address);
-    bot.sendMessage(
-      msg.chat.id,
-      `✅ Now tracking wallet:\n\`${address}\``,
-      { parse_mode: "Markdown" }
-    );
-  });
+    if (handleAddWallet) handleAddWallet(address);
+    await sendMessage(chatId, `✅ Now tracking wallet:\n\`${address}\``, "Markdown");
+  }
+}
 
-  bot.on("polling_error", (err) => {
-    console.error("[Notifier] Telegram polling error:", err.message);
-  });
-
-  return bot;
+async function sendMessage(chatId, text, parseMode = "MarkdownV2") {
+  if (!token) return;
+  const url = `https://api.telegram.org/bot${token}/sendMessage`;
+  await safeRequest(
+    async () => {
+      await axios.post(url, {
+        chat_id: chatId,
+        text,
+        parse_mode: parseMode,
+        disable_web_page_preview: true,
+      }, { timeout: 10000 });
+    },
+    "Telegram"
+  );
 }
 
 // Escape special chars for Telegram MarkdownV2
@@ -69,7 +117,7 @@ function esc(str) {
 }
 
 export async function sendSignalAlert(signal, execution = null) {
-  if (!bot || !CHAT_ID) return;
+  if (!token || !CHAT_ID) return;
 
   const emoji = SIGNAL_EMOJI[signal.signal] || "⚪";
   const riskEmoji = RISK_EMOJI[signal.riskLevel] || "🟨";
@@ -96,22 +144,16 @@ export async function sendSignalAlert(signal, execution = null) {
     if (execution.pnlPercent) text += `• Mock PnL: ${esc(execution.pnlPercent)}%\n`;
   }
 
-  try {
-    await bot.sendMessage(CHAT_ID, text, {
-      parse_mode: "HTML",
-      disable_web_page_preview: true,
-    });
-  } catch (err) {
-    console.error("[Notifier] Failed to send message:", err.message);
-  }
+  // Notice we use MarkdownV2 here because we escaped properly
+  await sendMessage(CHAT_ID, text, "MarkdownV2");
 }
 
 export async function sendStartupMessage() {
-  if (!bot || !CHAT_ID) return;
+  if (!token || !CHAT_ID) return;
   const mode = esc(process.env.EXECUTION_MODE || "mock");
-  await bot.sendMessage(
+  await sendMessage(
     CHAT_ID,
     `🚀 *MantleSpy Agent Started*\n\nNow monitoring Mantle Network for smart money movements\\.\nMode: \`${mode}\``,
-    { parse_mode: "MarkdownV2" }
+    "MarkdownV2"
   );
 }

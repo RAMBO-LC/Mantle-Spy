@@ -103,3 +103,17 @@ async function main() {
 }
 
 main().catch(console.error);
+
+// ── Global safety net — prevent any transient errors from crashing the agent ──
+process.on("unhandledRejection", (reason) => {
+  const msg = reason?.message || String(reason);
+  const code = reason?.code || "UNKNOWN";
+  console.warn(`[Agent] ⚠️ Unhandled Rejection (${code}): ${msg}`);
+  // We explicitly do NOT exit the process. The agent must survive.
+});
+
+process.on("uncaughtException", (err) => {
+  const code = err?.code || "UNKNOWN";
+  console.error(`[Agent] 🚨 Uncaught Exception (${code}):`, err);
+  // We explicitly do NOT exit the process. The agent must survive.
+});

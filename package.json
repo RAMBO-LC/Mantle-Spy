@@ -6,6 +6,7 @@
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "itest": "node --test test/integration.test.mjs",
     "deploy:testnet": "hardhat run scripts/deploy.js --network mantleTestnet",
     "deploy:mainnet": "hardhat run scripts/deploy.js --network mantle",
     "deploy-sep": "npx hardhat run scripts/deploy.js --network mantleTestnet",
@@ -14,6 +15,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
+    "express": "^5.2.1",
     "groq-sdk": "^1.2.0",
     "ollama": "^0.6.3"
   },

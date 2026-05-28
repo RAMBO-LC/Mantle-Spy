@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
+import { safeRequest } from "./utils/request.js";
 
 // ── Groq client ───────────────────────────────────────────────────────────────
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -98,15 +99,19 @@ Block: ${tx.blockNumber}`;
   try {
     console.log(`[Analyzer] Processing ${tx.hash.slice(0, 10)}...`);
 
-    const completion = await groq.chat.completions.create({
-      model: "qwen/qwen3-32b",
-      temperature: 0.1,
-      max_tokens: 1024,          // raised from 300 — thinking needs headroom
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: prompt },
-      ],
-    });
+    const completion = await safeRequest(async () => {
+      return await groq.chat.completions.create({
+        model: "qwen/qwen3-32b",
+        temperature: 0.1,
+        max_tokens: 1024,          // raised from 300 — thinking needs headroom
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: prompt },
+        ],
+      });
+    }, "Groq");
+
+    if (!completion) throw new Error("Groq API failed after retries");
 
     const raw = completion.choices?.[0]?.message?.content || "";
 

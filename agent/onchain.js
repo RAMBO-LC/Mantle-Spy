@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { safeRequest } from "./utils/request.js";
 
 // Minimal ABI — only what we need
 const ABI = [
@@ -13,7 +14,7 @@ const SIGNAL_TYPE_MAP = { IGNORE: 0, WATCH: 1, BUY: 2, SELL: 3 };
 let contract = null;
 
 export function initOnChainLogger() {
-  const rpcUrl = process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz";
+  const rpcUrl = process.env.MANTLE_RPC_URL || "https://rpc.sepolia.mantle.xyz";
   const privateKey = process.env.PRIVATE_KEY || process.env.MANTLE_PRIVATE_KEY;
   const contractAddress = process.env.SIGNAL_LOGGER_ADDRESS;
 
@@ -37,14 +38,19 @@ export async function logSignalOnChain(signal) {
     const dataHashBytes = ethers.getBytes(signal.dataHash);
     const signalTypeEnum = SIGNAL_TYPE_MAP[signal.signal] ?? 0;
 
-    const tx = await contract.logSignal(
-      dataHashBytes,
-      signalTypeEnum,
-      signal.confidence,
-      signal.txHash || "0x"
-    );
+    const tx = await safeRequest(async () => {
+      return await contract.logSignal(
+        dataHashBytes,
+        signalTypeEnum,
+        signal.confidence,
+        signal.txHash || "0x"
+      );
+    }, "Mantle RPC");
 
-    const receipt = await tx.wait();
+    if (!tx) return null;
+
+    const receipt = await safeRequest(() => tx.wait(), "Mantle RPC");
+    if (!receipt) return null;
     const onChainTxHash = receipt.hash;
 
     console.log(
@@ -64,28 +70,20 @@ export async function logSignalOnChain(signal) {
 
 export async function getSignalCount() {
   if (!contract) return 0;
-  try {
-    const count = await contract.getSignalCount();
-    return Number(count);
-  } catch {
-    return 0;
-  }
+  const count = await safeRequest(() => contract.getSignalCount(), "Mantle RPC");
+  return count ? Number(count) : 0;
 }
 
 export async function getLatestOnChainSignals(count = 10) {
   if (!contract) return [];
-  try {
-    const signals = await contract.getLatestSignals(count);
-    return signals.map((s) => ({
-      dataHash: s.dataHash,
-      signalType: ["IGNORE", "WATCH", "BUY", "SELL"][s.signalType] || "UNKNOWN",
-      confidence: s.confidence,
-      timestamp: new Date(Number(s.timestamp) * 1000).toISOString(),
-      triggeredBy: s.triggeredBy,
-      txReference: s.txReference,
-    }));
-  } catch (err) {
-    console.error("[OnChain] getLatestSignals failed:", err.message);
-    return [];
-  }
+  const signals = await safeRequest(() => contract.getLatestSignals(count), "Mantle RPC");
+  if (!signals) return [];
+  return signals.map((s) => ({
+    dataHash: s.dataHash,
+    signalType: ["IGNORE", "WATCH", "BUY", "SELL"][s.signalType] || "UNKNOWN",
+    confidence: s.confidence,
+    timestamp: new Date(Number(s.timestamp) * 1000).toISOString(),
+    triggeredBy: s.triggeredBy,
+    txReference: s.txReference,
+  }));
 }

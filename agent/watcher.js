@@ -1,10 +1,11 @@
 import { ethers } from "ethers";
 import { EventEmitter } from "events";
+import { safeRequest } from "./utils/request.js";
 
 export class MantleWatcher extends EventEmitter {
   constructor(config = {}) {
     super();
-    this.rpcUrl = config.rpcUrl || process.env.MANTLE_RPC_URL || "https://rpc.mantle.xyz";
+    this.rpcUrl = config.rpcUrl || process.env.MANTLE_RPC_URL || "https://rpc.sepolia.mantle.xyz";
     this.thresholdMNT = config.thresholdMNT || parseFloat(process.env.SIGNAL_THRESHOLD_MNT || process.env.WATCHER_THRESHOLD_MNT || "10");
     this.trackedWallets = new Set(
       (config.trackedWallets || process.env.TRACKED_WALLETS || "")
@@ -22,8 +23,10 @@ export class MantleWatcher extends EventEmitter {
 
   async connect() {
     this.provider = new ethers.JsonRpcProvider(this.rpcUrl);
-    const network = await this.provider.getNetwork();
-    console.log(`[Watcher] Connected to Mantle (chainId: ${network.chainId})`);
+    const network = await safeRequest(() => this.provider.getNetwork(), "Watcher");
+    if (network) {
+      console.log(`[Watcher] Connected to Mantle (chainId: ${network.chainId})`);
+    }
     return network;
   }
 
@@ -48,7 +51,7 @@ export class MantleWatcher extends EventEmitter {
     this.provider.on("block", async (blockNumber) => {
       const t0 = Date.now();
       try {
-        const block = await this.provider.getBlock(blockNumber, true);
+        const block = await safeRequest(() => this.provider.getBlock(blockNumber, true), "Watcher");
         if (!block || !block.transactions) return;
 
         this.blocksScanned++;
@@ -91,7 +94,7 @@ export class MantleWatcher extends EventEmitter {
     // Enrich with receipt for contract interactions
     let receipt = null;
     try {
-      receipt = await this.provider.getTransactionReceipt(tx.hash);
+      receipt = await safeRequest(() => this.provider.getTransactionReceipt(tx.hash), "Watcher");
     } catch (_) {}
 
     const flagged = {

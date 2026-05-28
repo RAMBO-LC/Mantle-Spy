@@ -1,0 +1,332 @@
+{
+	"compiler": {
+		"version": "0.8.30+commit.73712a01"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "uint256",
+						"name": "id",
+						"type": "uint256"
+					},
+					{
+						"indexed": true,
+						"internalType": "uint8",
+						"name": "signalType",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint8",
+						"name": "confidence",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
+						"internalType": "bytes32",
+						"name": "dataHash",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "txReference",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "SignalLogged",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "agent",
+						"type": "address"
+					}
+				],
+				"name": "authorizeAgent",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "authorizedAgents",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "count",
+						"type": "uint256"
+					}
+				],
+				"name": "getLatestSignals",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "bytes32",
+								"name": "dataHash",
+								"type": "bytes32"
+							},
+							{
+								"internalType": "uint8",
+								"name": "signalType",
+								"type": "uint8"
+							},
+							{
+								"internalType": "uint8",
+								"name": "confidence",
+								"type": "uint8"
+							},
+							{
+								"internalType": "string",
+								"name": "txReference",
+								"type": "string"
+							},
+							{
+								"internalType": "uint256",
+								"name": "timestamp",
+								"type": "uint256"
+							},
+							{
+								"internalType": "address",
+								"name": "triggeredBy",
+								"type": "address"
+							}
+						],
+						"internalType": "struct SignalLogger.Signal[]",
+						"name": "",
+						"type": "tuple[]"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "index",
+						"type": "uint256"
+					}
+				],
+				"name": "getSignal",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "dataHash",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "uint8",
+						"name": "signalType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "confidence",
+						"type": "uint8"
+					},
+					{
+						"internalType": "string",
+						"name": "txReference",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "triggeredBy",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "getSignalCount",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "dataHash",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "uint8",
+						"name": "signalType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "confidence",
+						"type": "uint8"
+					},
+					{
+						"internalType": "string",
+						"name": "txReference",
+						"type": "string"
+					}
+				],
+				"name": "logSignal",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "agent",
+						"type": "address"
+					}
+				],
+				"name": "revokeAgent",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "signals",
+				"outputs": [
+					{
+						"internalType": "bytes32",
+						"name": "dataHash",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "uint8",
+						"name": "signalType",
+						"type": "uint8"
+					},
+					{
+						"internalType": "uint8",
+						"name": "confidence",
+						"type": "uint8"
+					},
+					{
+						"internalType": "string",
+						"name": "txReference",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "triggeredBy",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"SignalLogger.sol": "SignalLogger"
+		},
+		"evmVersion": "prague",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"SignalLogger.sol": {
+			"keccak256": "0x214e7ab6de0508aeb88dd98df9c2cddc596a0610337a1a12d60efe0b21e0f179",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://9247ec3a3d427bbe819e73cb31281380b2a65eb2e78464a0454a660f33736c03",
+				"dweb:/ipfs/QmbK6TsBHhWNRZftf49k74CU3j5ZTe2zpHQL5KqYgD1SRQ"
+			]
+		}
+	},
+	"version": 1
+}

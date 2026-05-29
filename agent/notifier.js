@@ -13,7 +13,7 @@ let isPolling = false;
 let handleAddWallet = null;
 let handleGetStatus = null;
 
-export function initBot(onAddWallet, onStatus) {
+export function initBot(onAddWallet, onStatus, { polling = true } = {}) {
   token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
     console.warn("[Notifier] No TELEGRAM_BOT_TOKEN set — Telegram alerts disabled");
@@ -25,9 +25,11 @@ export function initBot(onAddWallet, onStatus) {
 
   console.log("[Notifier] Telegram bot initialized via Axios");
 
-  // Start polling
-  isPolling = true;
-  pollUpdates();
+  // Start polling only if requested (skip in simulation to avoid 409 conflicts)
+  if (polling) {
+    isPolling = true;
+    pollUpdates();
+  }
 
   return true; // Indicate active
 }
@@ -121,7 +123,7 @@ export async function sendSignalAlert(signal, execution = null) {
 
   const emoji = SIGNAL_EMOJI[signal.signal] || "⚪";
   const riskEmoji = RISK_EMOJI[signal.riskLevel] || "🟨";
-  const tags = signal.tags?.map((t) => `\#${esc(t)}`).join(" ") || "";
+  const tags = signal.tags?.map((t) => `\\#${esc(t)}`).join(" ") || "";
   const explorerUrl = `https://sepolia.mantlescan.xyz/tx/${signal.txHash}`;
 
   let text =

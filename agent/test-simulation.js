@@ -143,7 +143,7 @@ async function runSimulation() {
   // Init Services
   // ========================================
 
-  initBot(null, null);
+  initBot(null, null, { polling: false });
 
   const onChainEnabled =
     initOnChainLogger();
